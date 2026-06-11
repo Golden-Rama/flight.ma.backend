@@ -129,6 +129,9 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 	var scheduleDepartures dto.FlightSchedulesResponse
 	var scheduleReturns dto.FlightSchedulesResponse
 	var gotDepartures, gotReturns bool
+	
+	airportMap := make(map[string]dto.AirportDetailResponse)
+	airportV2Map := make(map[string]dto.AirportV2DetailResponse)
 
 	for r := range resultChan {
 		if r.err != nil {
@@ -141,15 +144,92 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 
 		if r.statusCode == http.StatusOK {
 			var result dto.FlightSearchResponse
-			if err := json.Unmarshal(r.res, &result); err != nil {
-				continue
+			
+			// Try to unmarshal as wrapped response first: {"status": true, "data": {...}}
+			var wrappedResult struct {
+				Status bool                     `json:"status"`
+				Data   dto.FlightSearchResponse `json:"data"`
 			}
+			if err := json.Unmarshal(r.res, &wrappedResult); err == nil && (len(wrappedResult.Data.Schedules) > 0 || len(wrappedResult.Data.AirportDetails) > 0) {
+				result = wrappedResult.Data
+			} else {
+				// Fallback to unwrapped response: {...}
+				if err := json.Unmarshal(r.res, &result); err != nil {
+					continue
+				}
+			}
+
+			// Find provider configuration
+			var currentProvider entity.FlightProvider
+			for _, p := range providers {
+				if p.Code == r.flightCode {
+					currentProvider = p
+					break
+				}
+			}
+
+			preferredGds := make(map[string]bool)
+			preferredNonGds := make(map[string]bool)
+			if currentProvider.FlightQuest != nil {
+				if currentProvider.FlightQuest.PreferredCarriersGds != "" {
+					for _, code := range strings.Split(currentProvider.FlightQuest.PreferredCarriersGds, ",") {
+						cCode := strings.TrimSpace(strings.ToUpper(code))
+						if cCode != "" {
+							preferredGds[cCode] = true
+						}
+					}
+				}
+				if currentProvider.FlightQuest.PreferredCarriersNonGds != "" {
+					for _, code := range strings.Split(currentProvider.FlightQuest.PreferredCarriersNonGds, ",") {
+						cCode := strings.TrimSpace(strings.ToUpper(code))
+						if cCode != "" {
+							preferredNonGds[cCode] = true
+						}
+					}
+				}
+			}
+
+			isPreferredFlight := func(f dto.FlightsResponse) bool {
+				carrierCode := ""
+				if len(f.Number) >= 2 {
+					carrierCode = strings.ToUpper(f.Number[:2])
+				}
+				if carrierCode == "" {
+					return true
+				}
+
+				isGds := strings.EqualFold(f.FlightType, "Gds")
+
+				if isGds {
+					if len(preferredGds) > 0 {
+						return preferredGds[carrierCode]
+					}
+				} else {
+					if len(preferredNonGds) > 0 {
+						return preferredNonGds[carrierCode]
+					}
+				}
+				return true
+			}
+
+			allowedAirports := make(map[string]bool)
 
 			if len(result.Schedules) > 0 {
 				gotDepartures = true
 				for _, f := range result.Schedules[0].Flights {
+					if !isPreferredFlight(f) {
+						continue
+					}
 					f.Provider = r.flightCode
 					scheduleDepartures.Flights = append(scheduleDepartures.Flights, f)
+
+					// Mark airports used in this allowed flight
+					allowedAirports[strings.ToUpper(f.Origin)] = true
+					allowedAirports[strings.ToUpper(f.Destination)] = true
+					for _, cf := range f.ConnectingFlights {
+						allowedAirports[strings.ToUpper(cf.Origin)] = true
+						allowedAirports[strings.ToUpper(cf.Destination)] = true
+					}
 				}
 				scheduleDepartures.Origin = result.Schedules[0].Origin
 				scheduleDepartures.Destination = result.Schedules[0].Destination
@@ -163,8 +243,19 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 				if input.IsRoundTrip == "true" && len(result.Schedules) > 1 {
 					gotReturns = true
 					for _, f := range result.Schedules[1].Flights {
+						if !isPreferredFlight(f) {
+							continue
+						}
 						f.Provider = r.flightCode
 						scheduleReturns.Flights = append(scheduleReturns.Flights, f)
+
+						// Mark airports used in this allowed flight
+						allowedAirports[strings.ToUpper(f.Origin)] = true
+						allowedAirports[strings.ToUpper(f.Destination)] = true
+						for _, cf := range f.ConnectingFlights {
+							allowedAirports[strings.ToUpper(cf.Origin)] = true
+							allowedAirports[strings.ToUpper(cf.Destination)] = true
+						}
 					}
 					scheduleReturns.Origin = result.Schedules[1].Origin
 					scheduleReturns.Destination = result.Schedules[1].Destination
@@ -174,6 +265,18 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 					scheduleReturns.DestinationAirportName = result.Schedules[1].DestinationAirportName
 					scheduleReturns.DestinationCityName = result.Schedules[1].DestinationCityName
 					scheduleReturns.Kind = "Return"
+				}
+			}
+
+			// Aggregate airport details only if they are used by allowed flights
+			for _, port := range result.AirportDetails {
+				if allowedAirports[strings.ToUpper(port.Code)] {
+					airportMap[port.Code] = port
+				}
+			}
+			for _, port := range result.AirportV2Details {
+				if allowedAirports[strings.ToUpper(port.Iata)] {
+					airportV2Map[port.Iata] = port
 				}
 			}
 		}
@@ -191,8 +294,25 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 	scheduleReturns.Flights = uniqueFlights(scheduleReturns.Flights)
 
 	var response dto.FlightSearchResponse
+	
+	// Collect unique AirportDetails and sort them alphabetically
 	response.AirportDetails = []dto.AirportDetailResponse{}
+	for _, port := range airportMap {
+		response.AirportDetails = append(response.AirportDetails, port)
+	}
+	sort.Slice(response.AirportDetails, func(i, j int) bool {
+		return response.AirportDetails[i].Code < response.AirportDetails[j].Code
+	})
+
+	// Collect unique AirportV2Details and sort them alphabetically
 	response.AirportV2Details = []dto.AirportV2DetailResponse{}
+	for _, port := range airportV2Map {
+		response.AirportV2Details = append(response.AirportV2Details, port)
+	}
+	sort.Slice(response.AirportV2Details, func(i, j int) bool {
+		return response.AirportV2Details[i].Iata < response.AirportV2Details[j].Iata
+	})
+
 	response.Schedules = []dto.FlightSchedulesResponse{}
 
 	if gotDepartures && len(scheduleDepartures.Flights) > 0 {
