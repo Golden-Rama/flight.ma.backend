@@ -1,64 +1,67 @@
 # GR Multi Aggregator
 
-A high-performance Go rewrite of the Multi Aggregator for Flight Service. It combines multiple flight providers, queries availability concurrently, and exposes a beautiful, lightweight Single Page Application (SPA) dashboard to manage flight providers, quests, bookings, and users.
+A high-performance Go backend service for the Flight Multi-Aggregator. It combines multiple flight providers, queries availability concurrently, and exposes CRUD REST API endpoints to manage flight providers, quests, bookings, and users.
 
-This project implements the same high standards and clean architecture as `flight.service`.
+> [!NOTE]
+> The administrative frontend application has been decoupled from this repository and is designed to run separately (e.g., Next.js / UmiJS frontend on port `3000` or `8000`). The backend allows cross-origin requests from these frontend applications via configured CORS middleware.
+
+---
 
 ## Technical Features & Stack
 
-- **Framework**: **Echo** (high-performance web framework).
-- **ORM**: **GORM** supporting both **MySQL** and **Postgres**.
-- **Clean Architecture**:
-  - `config/` - Environment configuration loaders.
-  - `src/entity/` - Database entities mapping GORM models.
-  - `src/repository/` - GORM repository pattern implementations.
-  - `src/service/` - Business logic including concurrent search aggregation.
-  - `src/handler/` - HTTP request handlers (API and Web).
-  - `src/middleware/` - Custom middlewares (API Bearer JWT and Web Cookie Session validation).
-  - `src/factory/` - Dependency Injection resolver.
-  - `src/utils/` - Shared encryption and string utils.
-- **Dual Server Ports**: Starts separate API (`:4001`) and Web Dashboard (`:4000`) servers concurrently in a single process.
-- **Lightweight Premium Frontend**:
-  - Served at `/dashboard`.
-  - Built using **Vanilla HTML5**, **Vanilla CSS**, and **Vanilla JS (fetch)**.
-  - No massive frameworks; fast, responsive, and styled with modern gradients, glassmorphism card layouts, and hover transitions.
-  - Uses Lucide Icons for high-fidelity rendering.
-- **Auto Migration & Seeding**: Automatically migrates database schemas on boot and seeds a default Administrator (`admin` / `admin123`).
+- **Framework**: **Echo** (high-performance, minimalist Go web framework).
+- **ORM**: **GORM** supporting both **MySQL** and **PostgreSQL** databases.
+- **Unified Port Architecture**: Starts a single unified Echo API server on port `4001` (by default) that serves both client APIs and administrative dashboard REST endpoints.
+- **CORS Support**: Ready-configured middleware to securely communicate with a separated modern frontend application.
+- **Auto Migration & Seeding**: Automatically migrates schemas on startup and seeds default Roles and an Administrator user (`admin` / `admin123`).
+- **Utility Scripts**: Built-in Go scripts for token generation, database backups, and staging-to-local synchronization.
+- **CI/CD Pipeline**: Automated GitHub Actions workflow for linting, security scanning (`govulncheck`), Docker builds, and deployment via VPN to Staging and Production servers.
 
 ---
 
 ## Directory Structure
 
 ```
+├── .github
+│   └── workflows
+│       └── deploy.yml            # CI/CD pipeline definition
 ├── config
-│   └── config.go          # Config loader using envconfig
+│   └── config.go                 # Configuration loader using envconfig
+├── scripts
+│   ├── dump_db
+│   │   └── main.go               # Utility to dump database structure and data to init.sql
+│   ├── generate_token
+│   │   └── main.go               # Utility to generate JWT tokens for local testing
+│   └── sync_to_local
+│       └── main.go               # Utility to sync configurations from staging RDS to local Postgres
 ├── src
 │   ├── dto
-│   │   ├── dtos.go        # Shared request/response data transfer objects
-│   │   └── search.go      # Flight search results representation model
+│   │   ├── dtos.go               # Shared request/response data transfer objects
+│   │   └── search.go             # Flight search models and structures
 │   ├── entity
-│   │   └── entities.go    # GORM DB models (User, Role, Provider, Quest, Booking)
+│   │   └── entities.go           # GORM DB entity models (User, Role, Provider, Quest, Booking)
 │   ├── factory
-│   │   └── resolver.go    # Resolver factory (DI & DB bootloader)
+│   │   └── resolver.go           # Resolver factory for Dependency Injection & DB bootloading
 │   ├── handler
-│   │   ├── api_handler.go        # Flight API controllers
-│   │   └── dashboard_handler.go  # Dashboard CRUD rest endpoints
+│   │   ├── api_handler.go        # Flight API controllers & OAuth2 client credentials endpoint
+│   │   └── dashboard_handler.go  # Dashboard CRUD REST endpoints
 │   ├── middleware
-│   │   └── auth_middleware.go    # API JWT & Dashboard session middlewares
+│   │   └── auth_middleware.go    # Bearer JWT and Cookie Session validation middlewares
 │   ├── repository
-│   │   └── repositories.go       # Data access layer using GORM
+│   │   └── repositories.go       # Data access layer implementations using GORM
 │   ├── service
-│   │   └── services.go           # Concurrent search aggregator & booking proxy
+│   │   └── services.go           # Business logic, concurrent search aggregator, and booking proxy
 │   └── utils
 │       └── utils.go              # BCrypt, MD5, and string helper functions
-├── static
-│   ├── index.html         # SPA HTML skeleton structure
-│   ├── style.css          # Premium glassmorphism dark mode stylesheet
-│   └── app.js             # Front-end router, state, and API fetch calls
-├── .env.example
+├── .dockerignore
+├── .env.example                  # Example environment variables template
+├── .gitignore
+├── docker-compose.yml
+├── Dockerfile
+├── entrypoint.sh                 # Docker container entrypoint script
 ├── go.mod
 ├── go.sum
-├── main.go                # Unified entrypoint (starts API & Dashboard Echo instances)
+├── main.go                       # Unified server entrypoint (starts the Echo API server)
 └── README.md
 ```
 
@@ -73,53 +76,103 @@ This project implements the same high standards and clean architecture as `fligh
 
 ### Configuration
 
-Copy `.env.example` to `.env` and fill in your database configuration details:
+Copy `.env.example` to `.env` and fill in your database and environment settings:
 
 ```bash
 cp .env.example .env
 ```
 
 Default credentials in `.env.example`:
-- `DASHBOARD_PORT`: `4000`
 - `API_PORT`: `4001`
 - `DB_DRIVER`: `mysql`
+- `DB_NAME`: `gr-flight-service`
+- `JWT_SECRET`: `super_secret_jwt_key`
 
 ### Running the Project
 
-Start the application:
+Start the Go backend application:
 
 ```bash
 go run main.go
 ```
 
-The system will:
-1. Connect to the database.
-2. Auto-run GORM migrations to create tables (`users_ma`, `roles_ma`, `flight_quests`, `flight_bookings`, `flight_providers`).
-3. Seed the default roles and user `admin` with password `admin123`.
-4. Start the API Server on `http://localhost:4001`.
-5. Start the Web Dashboard on `http://localhost:4000`.
+On startup, the system will:
+1. Load configurations from environment variables.
+2. Connect to the database.
+3. Automatically run GORM migrations to verify or create necessary tables (`users_ma`, `roles_ma`, `flight_quests`, `flight_bookings`, `flight_providers`).
+4. Seed default roles and the initial Administrator user (`admin` / `admin123`).
+5. Start the Echo server listening on the port configured by `API_PORT` (default: `4001`).
+
+---
+
+## Utility Scripts
+
+The project includes administrative scripts located inside the `scripts/` directory:
+
+### 1. Database Dumper
+Dumps the `flight_quests`, `flight_bookings`, and `flight_providers` tables from your active database to an `init.sql` file.
+```bash
+go run scripts/dump_db/main.go
+```
+
+### 2. JWT Token Generator
+Generates a mock JWT token valid for 24 hours to quickly test endpoints locally.
+```bash
+go run scripts/generate_token/main.go
+```
+
+### 3. Staging-to-Local Database Synchronizer
+Connects to the staging RDS MySQL database and synchronizes all structures, roles, providers, quests, bookings, and users into a local PostgreSQL database.
+```bash
+go run scripts/sync_to_local/main.go
+```
 
 ---
 
 ## API Endpoints
 
-### Flight Search Availability (API Port 4001)
-- `POST /api/v1/search`
-  - Concurrently queries search availability from all active providers.
-  - Sorts flights by fare and applies `DepartTime` uniqueness filtering.
+### 1. Client Authorization (OAuth2)
+- `POST /oauth2/token`
+  - Generates client tokens using client credentials flow (returns a Bearer token for api tests).
 
-### Booking & Reservation Passthrough (API Port 4001)
+### 2. Flight APIs (Port 4001 - Requires Bearer JWT Token)
+- `POST /api/v1/search`
+  - Concurrently queries flight availability across all active providers, sorts results, and applies uniqueness filtering.
 - `POST /api/v1/fare-detail`
 - `POST /api/v1/reservation`
 - `POST /api/v1/check-reservation`
 - `POST /api/v1/issue-ticket`
 - `POST /api/v1/cancel-reservation`
-  - Proxies payloads directly to the provider based on the `X-Provider` header.
+  - Proxies requests directly to the respective third-party provider indicated by the `X-Provider` header.
 
-### Web Dashboard & CRUD (Dashboard Port 4000)
-- `GET /dashboard` - Interactive SPA Web Interface.
-- `/api/dashboard/login` & `/api/dashboard/logout` - Session endpoints.
-- `/api/dashboard/providers` - CRUD for Flight Providers.
-- `/api/dashboard/quests` - CRUD for Quest configurations.
-- `/api/dashboard/bookings` - CRUD for Booking configurations.
-- `/api/dashboard/users` - CRUD for System Users.
+### 3. Dashboard CRUD REST API (Port 4001 - Requires Session Cookie `admin_auth`)
+- **Authentication**:
+  - `POST /api/dashboard/login` - Log in to establish an admin session.
+  - `POST /api/dashboard/logout` - Clear the session.
+  - `GET /api/dashboard/me` - Fetch details of the logged-in administrator.
+- **Flight Providers**:
+  - `GET /api/dashboard/providers` - List all providers.
+  - `POST /api/dashboard/providers` - Create a provider.
+  - `GET /api/dashboard/providers/:id` - Fetch details.
+  - `PUT /api/dashboard/providers/:id` - Update provider.
+  - `DELETE /api/dashboard/providers/:id` - Delete provider.
+- **Quest Configurations**:
+  - `GET /api/dashboard/quests` - List all quests.
+  - `POST /api/dashboard/quests` - Create a quest configuration.
+  - `GET /api/dashboard/quests/:id` - Fetch quest details.
+  - `PUT /api/dashboard/quests/:id` - Update quest configuration.
+  - `DELETE /api/dashboard/quests/:id` - Delete quest configuration.
+- **Booking Configurations**:
+  - `GET /api/dashboard/bookings` - List booking configs.
+  - `POST /api/dashboard/bookings` - Create a booking config.
+  - `GET /api/dashboard/bookings/:id` - Fetch booking config details.
+  - `PUT /api/dashboard/bookings/:id` - Update booking config.
+  - `DELETE /api/dashboard/bookings/:id` - Delete booking config.
+- **User Management**:
+  - `GET /api/dashboard/users` - List all users.
+  - `POST /api/dashboard/users` - Create a user.
+  - `GET /api/dashboard/users/:id` - Fetch user details.
+  - `PUT /api/dashboard/users/:id` - Update user.
+  - `DELETE /api/dashboard/users/:id` - Delete user.
+- **Role Listing**:
+  - `GET /api/dashboard/roles` - Get all roles in the system.
