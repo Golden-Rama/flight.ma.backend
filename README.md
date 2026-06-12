@@ -1,4 +1,4 @@
-# GR Multi Aggregator (Go Rewrite with Web Dashboard SPA)
+# GR Multi Aggregator
 
 A high-performance Go rewrite of the Multi Aggregator for Flight Service. It combines multiple flight providers, queries availability concurrently, and exposes a beautiful, lightweight Single Page Application (SPA) dashboard to manage flight providers, quests, bookings, and users.
 
