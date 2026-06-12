@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"gr-flight-ma-new/src/dto"
-	"gr-flight-ma-new/src/service"
+	"flight.ma.backend/src/dto"
+	"flight.ma.backend/src/service"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"

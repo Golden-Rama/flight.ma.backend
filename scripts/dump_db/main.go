@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"gr-flight-ma-new/config"
-	"gr-flight-ma-new/src/entity"
+	"flight.ma.backend/config"
+	"flight.ma.backend/src/entity"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

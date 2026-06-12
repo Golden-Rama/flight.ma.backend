@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"gr-flight-ma-new/src/dto"
-	"gr-flight-ma-new/src/entity"
-	"gr-flight-ma-new/src/repository"
+	"flight.ma.backend/src/dto"
+	"flight.ma.backend/src/entity"
+	"flight.ma.backend/src/repository"
 )
 
 type SearchService interface {

@@ -1,4 +1,4 @@
-module gr-flight-ma-new
+module flight.ma.backend
 
 go 1.21.0
 

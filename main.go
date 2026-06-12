@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 
-	"gr-flight-ma-new/config"
-	"gr-flight-ma-new/src/factory"
-	customAuth "gr-flight-ma-new/src/middleware"
+	"flight.ma.backend/config"
+	"flight.ma.backend/src/factory"
+	customAuth "flight.ma.backend/src/middleware"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"

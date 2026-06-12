@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"gr-flight-ma-new/src/handler"
+	"flight.ma.backend/src/handler"
 
 	"github.com/labstack/echo/v4"
 )

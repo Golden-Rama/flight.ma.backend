@@ -28,12 +28,16 @@ WORKDIR /app
 
 # Copy the compiled binary from the builder stage
 COPY --from=builder /app/main .
+COPY --from=builder /app/entrypoint.sh .
 
 # Copy environment example to serve as a fallback or template
 COPY --from=builder /app/.env.example .env
 
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
+
 # Expose the API port
 EXPOSE 4001
 
-# Execute the application binary
-CMD ["./main"]
+# Execute the application via entrypoint
+ENTRYPOINT ["./entrypoint.sh"]
+

@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"gr-flight-ma-new/src/entity"
-	"gr-flight-ma-new/src/repository"
-	"gr-flight-ma-new/src/utils"
+	"flight.ma.backend/src/entity"
+	"flight.ma.backend/src/repository"
+	"flight.ma.backend/src/utils"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"

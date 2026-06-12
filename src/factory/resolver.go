@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"gr-flight-ma-new/config"
-	"gr-flight-ma-new/src/entity"
-	"gr-flight-ma-new/src/handler"
-	"gr-flight-ma-new/src/repository"
-	"gr-flight-ma-new/src/service"
-	"gr-flight-ma-new/src/utils"
+	"flight.ma.backend/config"
+	"flight.ma.backend/src/entity"
+	"flight.ma.backend/src/handler"
+	"flight.ma.backend/src/repository"
+	"flight.ma.backend/src/service"
+	"flight.ma.backend/src/utils"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"

@@ -2,8 +2,8 @@ package main
 
 import (
     "fmt"
-    "gr-flight-ma-new/config"
-    "gr-flight-ma-new/src/factory"
+    "flight.ma.backend/config"
+    "flight.ma.backend/src/factory"
 )
 
 func main() {

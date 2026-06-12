@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"gr-flight-ma-new/src/entity"
+	"flight.ma.backend/src/entity"
 	"gorm.io/gorm"
 )
 
