@@ -53,16 +53,20 @@ jobs:
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           GOPATH_BIN=$(go env GOPATH)/bin/govulncheck
-          $GOPATH_BIN ./... || {
-            EXIT_CODE=$?
-            OUTPUT=$($GOPATH_BIN ./...)
-            VULN_COUNT=$(echo "$OUTPUT" | grep -c "Vulnerability #")
-            if echo "$OUTPUT" | grep -q "github.com/golang-jwt/jwt@v3.2.2+incompatible" && [ "$VULN_COUNT" -eq 1 ]; then
+          EXIT_CODE=0
+          $GOPATH_BIN ./... > govuln.out 2>&1 || EXIT_CODE=$?
+          cat govuln.out
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            VULN_COUNT=$(grep -c "Vulnerability #" govuln.out || true)
+            if grep -q "github.com/golang-jwt/jwt@v3.2.2+incompatible" govuln.out && [ "$VULN_COUNT" -eq 1 ]; then
               echo "Bypassing known non-exploitable transitive dependency vulnerability (golang-jwt/jwt v3.2.2+incompatible)."
+              rm govuln.out
               exit 0
             fi
+            rm govuln.out
             exit $EXIT_CODE
-          }
+          fi
+          rm govuln.out
 
   build-and-test:
     name: Build Verification
