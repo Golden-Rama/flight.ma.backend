@@ -10,7 +10,6 @@ import (
 	customAuth "flight.ma.backend/src/middleware"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
@@ -30,19 +29,17 @@ func main() {
 	// 4. Initialize Unified API/Backend Server (Echo)
 	e := echo.New()
 	e.HideBanner = true
-	e.Use(middleware.Recover())
+	e.Use(customAuth.Recover())
 
 	// CORS Middleware configured to allow requests from the separated Next.js/UmiJS frontend
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+	e.Use(customAuth.CORS(customAuth.CORSConfig{
 		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000", "http://127.0.0.1:8000"},
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, "X-Provider"},
 		AllowCredentials: true,
 	}))
 
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "API: method=${method}, uri=${uri}, status=${status}\n",
-	}))
+	e.Use(customAuth.Logger())
 
 	// Health Check
 	e.GET("/", func(c echo.Context) error {
