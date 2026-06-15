@@ -90,7 +90,7 @@ func NewResolver(cfg *config.Config) (*Resolver, error) {
 	bookingService := service.NewBookingService(providerRepo)
 
 	// Initialize Handlers
-	apiHandler := handler.NewApiHandler(searchService, bookingService)
+	apiHandler := handler.NewApiHandler(searchService, bookingService, cfg.JwtSecret)
 	dashboardHandler := handler.NewDashboardHandler(userRepo, roleRepo, providerRepo, questRepo, bookingRepo)
 
 	return &Resolver{

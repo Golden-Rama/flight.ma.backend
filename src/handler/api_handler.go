@@ -1,9 +1,13 @@
 package handler
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 
 	"flight.ma.backend/src/dto"
 	"flight.ma.backend/src/service"
@@ -15,13 +19,15 @@ import (
 type ApiHandler struct {
 	searchService  service.SearchService
 	bookingService service.BookingService
+	jwtSecret      string
 	validate       *validator.Validate
 }
 
-func NewApiHandler(searchService service.SearchService, bookingService service.BookingService) *ApiHandler {
+func NewApiHandler(searchService service.SearchService, bookingService service.BookingService, jwtSecret string) *ApiHandler {
 	return &ApiHandler{
 		searchService:  searchService,
 		bookingService: bookingService,
+		jwtSecret:      jwtSecret,
 		validate:       validator.New(),
 	}
 }
@@ -62,14 +68,45 @@ func (h *ApiHandler) OAuth2Token(c echo.Context) error {
 		})
 	}
 
-	// Sign a dummy JWT token for demo/standard compatibility
-	// In production, we'd validate client ID and secret against DB
-	token := "dummy_jwt_token_for_" + req.ClientID
+	// Sign a real JWT token using HS256 and the configured JwtSecret
+	header := map[string]string{
+		"alg": "HS256",
+		"typ": "JWT",
+	}
+	headerBytes, err := json.Marshal(header)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{
+			"error": "failed_to_generate_token_header",
+		})
+	}
+	headerB64 := base64.RawURLEncoding.EncodeToString(headerBytes)
+
+	expiresIn := int64(3600)
+	payload := map[string]any{
+		"sub": req.ClientID,
+		"exp": time.Now().Add(time.Duration(expiresIn) * time.Second).Unix(),
+		"iat": time.Now().Unix(),
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{
+			"error": "failed_to_generate_token_payload",
+		})
+	}
+	payloadB64 := base64.RawURLEncoding.EncodeToString(payloadBytes)
+
+	signingInput := headerB64 + "." + payloadB64
+
+	mac := hmac.New(sha256.New, []byte(h.jwtSecret))
+	mac.Write([]byte(signingInput))
+	signatureB64 := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	token := signingInput + "." + signatureB64
 
 	return c.JSON(http.StatusOK, map[string]any{
 		"access_token": token,
 		"token_type":   "Bearer",
-		"expires_in":   3600,
+		"expires_in":   expiresIn,
 	})
 }
 
