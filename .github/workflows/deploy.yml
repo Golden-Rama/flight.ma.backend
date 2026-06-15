@@ -209,21 +209,19 @@ jobs:
             
             echo "Writing environment secrets..."
             mkdir -p /opt/secrets
-            cat <<EOF > /opt/secrets/flight_ma_secrets
-API_PORT="$API_PORT"
-APP_DEBUG="$APP_DEBUG"
-APP_ENV="$APP_ENV"
-APP_NAME="$APP_NAME"
-DASHBOARD_PORT="$DASHBOARD_PORT"
-DB_DRIVER="$DB_DRIVER"
-DB_HOST="$DB_HOST"
-DB_NAME="$DB_NAME"
-DB_PASS="$DB_PASS"
-DB_PORT="$DB_PORT"
-DB_USER="$DB_USER"
-JWT_SECRET="$JWT_SECRET"
-OPSIGO_PREF_AIRLINE="$OPSIGO_PREF_AIRLINE"
-EOF
+            echo "API_PORT=\"$API_PORT\"" > /opt/secrets/flight_ma_secrets
+            echo "APP_DEBUG=\"$APP_DEBUG\"" >> /opt/secrets/flight_ma_secrets
+            echo "APP_ENV=\"$APP_ENV\"" >> /opt/secrets/flight_ma_secrets
+            echo "APP_NAME=\"$APP_NAME\"" >> /opt/secrets/flight_ma_secrets
+            echo "DASHBOARD_PORT=\"$DASHBOARD_PORT\"" >> /opt/secrets/flight_ma_secrets
+            echo "DB_DRIVER=\"$DB_DRIVER\"" >> /opt/secrets/flight_ma_secrets
+            echo "DB_HOST=\"$DB_HOST\"" >> /opt/secrets/flight_ma_secrets
+            echo "DB_NAME=\"$DB_NAME\"" >> /opt/secrets/flight_ma_secrets
+            echo "DB_PASS=\"$DB_PASS\"" >> /opt/secrets/flight_ma_secrets
+            echo "DB_PORT=\"$DB_PORT\"" >> /opt/secrets/flight_ma_secrets
+            echo "DB_USER=\"$DB_USER\"" >> /opt/secrets/flight_ma_secrets
+            echo "JWT_SECRET=\"$JWT_SECRET\"" >> /opt/secrets/flight_ma_secrets
+            echo "OPSIGO_PREF_AIRLINE=\"$OPSIGO_PREF_AIRLINE\"" >> /opt/secrets/flight_ma_secrets
 
             echo "Pulling latest testing image..."
             docker pull ghcr.io/$REPO_LOWER:testing
@@ -334,21 +332,19 @@ EOF
             
             echo "Writing environment secrets..."
             mkdir -p /opt/secrets
-            cat <<EOF > /opt/secrets/flight_ma_secrets_production
-API_PORT="$API_PORT"
-APP_DEBUG="$APP_DEBUG"
-APP_ENV="$APP_ENV"
-APP_NAME="$APP_NAME"
-DASHBOARD_PORT="$DASHBOARD_PORT"
-DB_DRIVER="$DB_DRIVER"
-DB_HOST="$DB_HOST"
-DB_NAME="$DB_NAME"
-DB_PASS="$DB_PASS"
-DB_PORT="$DB_PORT"
-DB_USER="$DB_USER"
-JWT_SECRET="$JWT_SECRET"
-OPSIGO_PREF_AIRLINE="$OPSIGO_PREF_AIRLINE"
-EOF
+            echo "API_PORT=\"$API_PORT\"" > /opt/secrets/flight_ma_secrets_production
+            echo "APP_DEBUG=\"$APP_DEBUG\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "APP_ENV=\"$APP_ENV\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "APP_NAME=\"$APP_NAME\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "DASHBOARD_PORT=\"$DASHBOARD_PORT\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "DB_DRIVER=\"$DB_DRIVER\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "DB_HOST=\"$DB_HOST\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "DB_NAME=\"$DB_NAME\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "DB_PASS=\"$DB_PASS\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "DB_PORT=\"$DB_PORT\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "DB_USER=\"$DB_USER\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "JWT_SECRET=\"$JWT_SECRET\"" >> /opt/secrets/flight_ma_secrets_production
+            echo "OPSIGO_PREF_AIRLINE=\"$OPSIGO_PREF_AIRLINE\"" >> /opt/secrets/flight_ma_secrets_production
 
             echo "Pulling latest production image..."
             docker pull ghcr.io/$REPO_LOWER:latest
