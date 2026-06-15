@@ -13,7 +13,7 @@ import (
 )
 
 type ApiHandler struct {
-	searchService service.SearchService
+	searchService  service.SearchService
 	bookingService service.BookingService
 	validate       *validator.Validate
 }

@@ -167,11 +167,11 @@ func seedDatabase(db *gorm.DB, userRepo repository.UserRepository) {
 		db.Create(&booking)
 
 		provider := entity.FlightProvider{
-			Name:                "Flight Service",
-			Code:                "flight-service",
-			BaseUrl:             "http://host.docker.internal:8000",
-			IsActive:            true,
-			AvailableDomestic:   true,
+			Name:              "Flight Service",
+			Code:              "flight-service",
+			BaseUrl:           "http://host.docker.internal:8000",
+			IsActive:          true,
+			AvailableDomestic: true,
 
 			Description:         "Main flight service GDS & LCC provider (flight.service)",
 			FlightQuestId:       &quest.ID,

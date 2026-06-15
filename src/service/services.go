@@ -129,7 +129,7 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 	var scheduleDepartures dto.FlightSchedulesResponse
 	var scheduleReturns dto.FlightSchedulesResponse
 	var gotDepartures, gotReturns bool
-	
+
 	airportMap := make(map[string]dto.AirportDetailResponse)
 	airportV2Map := make(map[string]dto.AirportV2DetailResponse)
 
@@ -144,7 +144,7 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 
 		if r.statusCode == http.StatusOK {
 			var result dto.FlightSearchResponse
-			
+
 			// Try to unmarshal as wrapped response first: {"status": true, "data": {...}}
 			var wrappedResult struct {
 				Status bool                     `json:"status"`
@@ -294,7 +294,7 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 	scheduleReturns.Flights = uniqueFlights(scheduleReturns.Flights)
 
 	var response dto.FlightSearchResponse
-	
+
 	// Collect unique AirportDetails and sort them alphabetically
 	response.AirportDetails = []dto.AirportDetailResponse{}
 	for _, port := range airportMap {

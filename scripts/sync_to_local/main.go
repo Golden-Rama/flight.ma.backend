@@ -115,7 +115,7 @@ func main() {
 			pgDb.Save(&u)
 		}
 	}
-	
+
 	// Sync many-to-many relationship users_role_ma
 	type UserRoleMa struct {
 		UserID uint64 `gorm:"column:user_id"`

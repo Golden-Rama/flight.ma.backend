@@ -31,7 +31,7 @@ func main() {
 	e := echo.New()
 	e.HideBanner = true
 	e.Use(middleware.Recover())
-	
+
 	// CORS Middleware configured to allow requests from the separated Next.js/UmiJS frontend
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000", "http://127.0.0.1:8000"},
