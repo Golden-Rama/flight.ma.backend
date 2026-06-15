@@ -144,19 +144,49 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 
 		if r.statusCode == http.StatusOK {
 			var result dto.FlightSearchResponse
+			var parsed bool
 
-			// Try to unmarshal as wrapped response first: {"status": true, "data": {...}}
-			var wrappedResult struct {
-				Status bool                     `json:"status"`
-				Data   dto.FlightSearchResponse `json:"data"`
-			}
-			if err := json.Unmarshal(r.res, &wrappedResult); err == nil && (len(wrappedResult.Data.Schedules) > 0 || len(wrappedResult.Data.AirportDetails) > 0) {
-				result = wrappedResult.Data
-			} else {
-				// Fallback to unwrapped response: {...}
-				if err := json.Unmarshal(r.res, &result); err != nil {
-					continue
+			// Parse response, handling various wrapping formats (double-wrapped, single-wrapped, unwrapped)
+			type genericMap map[string]json.RawMessage
+			var top genericMap
+			if err := json.Unmarshal(r.res, &top); err == nil {
+				// Case 1: Double-wrapped or Single-wrapped in "data"
+				if dataRaw, ok := top["data"]; ok {
+					var inner genericMap
+					if err := json.Unmarshal(dataRaw, &inner); err == nil {
+						// Double-wrapped: {"success": true, "data": {"status": true, "data": {...}}}
+						if innerDataRaw, ok := inner["data"]; ok {
+							if err := json.Unmarshal(innerDataRaw, &result); err == nil && (len(result.Schedules) > 0 || len(result.AirportDetails) > 0) {
+								parsed = true
+							}
+						}
+					}
+					// Single-wrapped in "data": {"success": true, "data": {...}}
+					if !parsed {
+						if err := json.Unmarshal(dataRaw, &result); err == nil && (len(result.Schedules) > 0 || len(result.AirportDetails) > 0) {
+							parsed = true
+						}
+					}
 				}
+				// Case 2: Single-wrapped with status/data: {"status": true, "data": {...}}
+				if !parsed {
+					if dataRaw, ok := top["data"]; ok {
+						if err := json.Unmarshal(dataRaw, &result); err == nil && (len(result.Schedules) > 0 || len(result.AirportDetails) > 0) {
+							parsed = true
+						}
+					}
+				}
+			}
+
+			// Case 3: Unwrapped response: {...}
+			if !parsed {
+				if err := json.Unmarshal(r.res, &result); err == nil {
+					parsed = true
+				}
+			}
+
+			if !parsed {
+				continue
 			}
 
 			// Find provider configuration
@@ -221,6 +251,12 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 						continue
 					}
 					f.Provider = r.flightCode
+					if f.AirlineName == "" && len(f.ConnectingFlights) > 0 {
+						f.AirlineName = f.ConnectingFlights[0].AirlineName
+					}
+					if f.AirlineImageUrl == "" && len(f.ConnectingFlights) > 0 {
+						f.AirlineImageUrl = f.ConnectingFlights[0].AirlineImageUrl
+					}
 					scheduleDepartures.Flights = append(scheduleDepartures.Flights, f)
 
 					// Mark airports used in this allowed flight
@@ -247,6 +283,12 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 							continue
 						}
 						f.Provider = r.flightCode
+						if f.AirlineName == "" && len(f.ConnectingFlights) > 0 {
+							f.AirlineName = f.ConnectingFlights[0].AirlineName
+						}
+						if f.AirlineImageUrl == "" && len(f.ConnectingFlights) > 0 {
+							f.AirlineImageUrl = f.ConnectingFlights[0].AirlineImageUrl
+						}
 						scheduleReturns.Flights = append(scheduleReturns.Flights, f)
 
 						// Mark airports used in this allowed flight
