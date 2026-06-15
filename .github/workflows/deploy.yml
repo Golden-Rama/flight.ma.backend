@@ -209,6 +209,9 @@ jobs:
             
             echo "Writing environment secrets..."
             mkdir -p /opt/secrets
+            if [ -d "/opt/secrets/flight_ma_secrets" ]; then
+              rm -rf /opt/secrets/flight_ma_secrets
+            fi
             echo "API_PORT=\"$API_PORT\"" > /opt/secrets/flight_ma_secrets
             echo "APP_DEBUG=\"$APP_DEBUG\"" >> /opt/secrets/flight_ma_secrets
             echo "APP_ENV=\"$APP_ENV\"" >> /opt/secrets/flight_ma_secrets
@@ -332,6 +335,9 @@ jobs:
             
             echo "Writing environment secrets..."
             mkdir -p /opt/secrets
+            if [ -d "/opt/secrets/flight_ma_secrets_production" ]; then
+              rm -rf /opt/secrets/flight_ma_secrets_production
+            fi
             echo "API_PORT=\"$API_PORT\"" > /opt/secrets/flight_ma_secrets_production
             echo "APP_DEBUG=\"$APP_DEBUG\"" >> /opt/secrets/flight_ma_secrets_production
             echo "APP_ENV=\"$APP_ENV\"" >> /opt/secrets/flight_ma_secrets_production
