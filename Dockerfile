@@ -1,5 +1,5 @@
 # Stage 1: Build the Go binary
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Install tzdata and ca-certificates for security and timezone handling
 RUN apk update && apk add --no-cache git ca-certificates tzdata
