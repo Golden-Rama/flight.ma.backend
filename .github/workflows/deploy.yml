@@ -184,16 +184,47 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
           REPO_LOWER: ${{ env.REPO_LOWER }}
+          API_PORT: ${{ vars.API_PORT }}
+          APP_DEBUG: ${{ vars.APP_DEBUG }}
+          APP_ENV: ${{ vars.APP_ENV }}
+          APP_NAME: ${{ vars.APP_NAME }}
+          DASHBOARD_PORT: ${{ vars.DASHBOARD_PORT }}
+          DB_DRIVER: ${{ vars.DB_DRIVER }}
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          DB_PASS: ${{ vars.DB_PASS }}
+          DB_PORT: ${{ vars.DB_PORT }}
+          DB_USER: ${{ vars.DB_USER }}
+          JWT_SECRET: ${{ vars.JWT_SECRET }}
+          OPSIGO_PREF_AIRLINE: ${{ vars.OPSIGO_PREF_AIRLINE }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
-          envs: GITHUB_TOKEN,GITHUB_ACTOR,REPO_LOWER
+          envs: GITHUB_TOKEN,GITHUB_ACTOR,REPO_LOWER,API_PORT,APP_DEBUG,APP_ENV,APP_NAME,DASHBOARD_PORT,DB_DRIVER,DB_HOST,DB_NAME,DB_PASS,DB_PORT,DB_USER,JWT_SECRET,OPSIGO_PREF_AIRLINE
           script: |
             echo "Logging in to GitHub Container Registry..."
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
             
+            echo "Writing environment secrets..."
+            mkdir -p /opt/secrets
+            cat <<EOF > /opt/secrets/flight_ma_secrets
+API_PORT="$API_PORT"
+APP_DEBUG="$APP_DEBUG"
+APP_ENV="$APP_ENV"
+APP_NAME="$APP_NAME"
+DASHBOARD_PORT="$DASHBOARD_PORT"
+DB_DRIVER="$DB_DRIVER"
+DB_HOST="$DB_HOST"
+DB_NAME="$DB_NAME"
+DB_PASS="$DB_PASS"
+DB_PORT="$DB_PORT"
+DB_USER="$DB_USER"
+JWT_SECRET="$JWT_SECRET"
+OPSIGO_PREF_AIRLINE="$OPSIGO_PREF_AIRLINE"
+EOF
+
             echo "Pulling latest testing image..."
             docker pull ghcr.io/$REPO_LOWER:testing
             
@@ -278,16 +309,47 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
           REPO_LOWER: ${{ env.REPO_LOWER }}
+          API_PORT: ${{ vars.API_PORT }}
+          APP_DEBUG: ${{ vars.APP_DEBUG }}
+          APP_ENV: ${{ vars.APP_ENV }}
+          APP_NAME: ${{ vars.APP_NAME }}
+          DASHBOARD_PORT: ${{ vars.DASHBOARD_PORT }}
+          DB_DRIVER: ${{ vars.DB_DRIVER }}
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          DB_PASS: ${{ vars.DB_PASS }}
+          DB_PORT: ${{ vars.DB_PORT }}
+          DB_USER: ${{ vars.DB_USER }}
+          JWT_SECRET: ${{ vars.JWT_SECRET }}
+          OPSIGO_PREF_AIRLINE: ${{ vars.OPSIGO_PREF_AIRLINE }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
-          envs: GITHUB_TOKEN,GITHUB_ACTOR,REPO_LOWER
+          envs: GITHUB_TOKEN,GITHUB_ACTOR,REPO_LOWER,API_PORT,APP_DEBUG,APP_ENV,APP_NAME,DASHBOARD_PORT,DB_DRIVER,DB_HOST,DB_NAME,DB_PASS,DB_PORT,DB_USER,JWT_SECRET,OPSIGO_PREF_AIRLINE
           script: |
             echo "Logging in to GitHub Container Registry..."
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
             
+            echo "Writing environment secrets..."
+            mkdir -p /opt/secrets
+            cat <<EOF > /opt/secrets/flight_ma_secrets_production
+API_PORT="$API_PORT"
+APP_DEBUG="$APP_DEBUG"
+APP_ENV="$APP_ENV"
+APP_NAME="$APP_NAME"
+DASHBOARD_PORT="$DASHBOARD_PORT"
+DB_DRIVER="$DB_DRIVER"
+DB_HOST="$DB_HOST"
+DB_NAME="$DB_NAME"
+DB_PASS="$DB_PASS"
+DB_PORT="$DB_PORT"
+DB_USER="$DB_USER"
+JWT_SECRET="$JWT_SECRET"
+OPSIGO_PREF_AIRLINE="$OPSIGO_PREF_AIRLINE"
+EOF
+
             echo "Pulling latest production image..."
             docker pull ghcr.io/$REPO_LOWER:latest
             
