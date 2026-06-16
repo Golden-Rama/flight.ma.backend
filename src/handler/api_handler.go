@@ -168,8 +168,32 @@ func (h *ApiHandler) proxyBooking(c echo.Context, serviceType string) error {
 
 	var jsonRes any
 	if err := json.Unmarshal(res, &jsonRes); err == nil {
+		if serviceType == "fare-detail" {
+			if targetMap, found := findClassIdMap(jsonRes); found {
+				return c.JSON(code, targetMap)
+			}
+		}
 		return c.JSON(code, jsonRes)
 	}
 
 	return c.Blob(code, "application/json", res)
+}
+
+func findClassIdMap(val any) (map[string]any, bool) {
+	m, ok := val.(map[string]any)
+	if !ok {
+		return nil, false
+	}
+	if _, exists := m["ClassId"]; exists {
+		return m, true
+	}
+	if _, exists := m["classId"]; exists {
+		return m, true
+	}
+	if dataVal, exists := m["data"]; exists {
+		if res, ok := findClassIdMap(dataVal); ok {
+			return res, true
+		}
+	}
+	return nil, false
 }
