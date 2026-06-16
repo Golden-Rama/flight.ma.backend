@@ -244,19 +244,30 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 
 			allowedAirports := make(map[string]bool)
 
+			localAirports := make(map[string]dto.AirportDetailResponse)
+			localAirportsV2 := make(map[string]dto.AirportV2DetailResponse)
+			for _, port := range result.AirportDetails {
+				localAirports[strings.ToUpper(port.Code)] = port
+			}
+			for _, port := range result.AirportV2Details {
+				localAirportsV2[strings.ToUpper(port.Iata)] = port
+			}
+
 			if len(result.Schedules) > 0 {
 				gotDepartures = true
 				for _, f := range result.Schedules[0].Flights {
 					if !isPreferredFlight(f) {
 						continue
 					}
-					f.Provider = r.flightCode
 					if f.AirlineName == "" && len(f.ConnectingFlights) > 0 {
 						f.AirlineName = f.ConnectingFlights[0].AirlineName
 					}
 					if f.AirlineImageUrl == "" && len(f.ConnectingFlights) > 0 {
 						f.AirlineImageUrl = f.ConnectingFlights[0].AirlineImageUrl
 					}
+
+					populateFlightDetails(&f, r.flightCode, localAirports, localAirportsV2)
+
 					scheduleDepartures.Flights = append(scheduleDepartures.Flights, f)
 
 					// Mark airports used in this allowed flight
@@ -274,6 +285,36 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 				scheduleDepartures.OriginCityName = result.Schedules[0].OriginCityName
 				scheduleDepartures.DestinationAirportName = result.Schedules[0].DestinationAirportName
 				scheduleDepartures.DestinationCityName = result.Schedules[0].DestinationCityName
+
+				if scheduleDepartures.OriginAirportName == "" {
+					if port, ok := localAirports[strings.ToUpper(scheduleDepartures.Origin)]; ok {
+						scheduleDepartures.OriginAirportName = port.AirportName
+					} else if portV2, ok := localAirportsV2[strings.ToUpper(scheduleDepartures.Origin)]; ok {
+						scheduleDepartures.OriginAirportName = portV2.Name
+					}
+				}
+				if scheduleDepartures.OriginCityName == "" {
+					if port, ok := localAirports[strings.ToUpper(scheduleDepartures.Origin)]; ok {
+						scheduleDepartures.OriginCityName = port.CityName
+					} else if portV2, ok := localAirportsV2[strings.ToUpper(scheduleDepartures.Origin)]; ok {
+						scheduleDepartures.OriginCityName = portV2.City
+					}
+				}
+				if scheduleDepartures.DestinationAirportName == "" {
+					if port, ok := localAirports[strings.ToUpper(scheduleDepartures.Destination)]; ok {
+						scheduleDepartures.DestinationAirportName = port.AirportName
+					} else if portV2, ok := localAirportsV2[strings.ToUpper(scheduleDepartures.Destination)]; ok {
+						scheduleDepartures.DestinationAirportName = portV2.Name
+					}
+				}
+				if scheduleDepartures.DestinationCityName == "" {
+					if port, ok := localAirports[strings.ToUpper(scheduleDepartures.Destination)]; ok {
+						scheduleDepartures.DestinationCityName = port.CityName
+					} else if portV2, ok := localAirportsV2[strings.ToUpper(scheduleDepartures.Destination)]; ok {
+						scheduleDepartures.DestinationCityName = portV2.City
+					}
+				}
+
 				scheduleDepartures.Kind = "Departure"
 
 				if input.IsRoundTrip == "true" && len(result.Schedules) > 1 {
@@ -282,13 +323,15 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 						if !isPreferredFlight(f) {
 							continue
 						}
-						f.Provider = r.flightCode
 						if f.AirlineName == "" && len(f.ConnectingFlights) > 0 {
 							f.AirlineName = f.ConnectingFlights[0].AirlineName
 						}
 						if f.AirlineImageUrl == "" && len(f.ConnectingFlights) > 0 {
 							f.AirlineImageUrl = f.ConnectingFlights[0].AirlineImageUrl
 						}
+
+						populateFlightDetails(&f, r.flightCode, localAirports, localAirportsV2)
+
 						scheduleReturns.Flights = append(scheduleReturns.Flights, f)
 
 						// Mark airports used in this allowed flight
@@ -306,6 +349,36 @@ func (s *mysqlSearchService) Search(ctx context.Context, input dto.FlightSearchI
 					scheduleReturns.OriginCityName = result.Schedules[1].OriginCityName
 					scheduleReturns.DestinationAirportName = result.Schedules[1].DestinationAirportName
 					scheduleReturns.DestinationCityName = result.Schedules[1].DestinationCityName
+
+					if scheduleReturns.OriginAirportName == "" {
+						if port, ok := localAirports[strings.ToUpper(scheduleReturns.Origin)]; ok {
+							scheduleReturns.OriginAirportName = port.AirportName
+						} else if portV2, ok := localAirportsV2[strings.ToUpper(scheduleReturns.Origin)]; ok {
+							scheduleReturns.OriginAirportName = portV2.Name
+						}
+					}
+					if scheduleReturns.OriginCityName == "" {
+						if port, ok := localAirports[strings.ToUpper(scheduleReturns.Origin)]; ok {
+							scheduleReturns.OriginCityName = port.CityName
+						} else if portV2, ok := localAirportsV2[strings.ToUpper(scheduleReturns.Origin)]; ok {
+							scheduleReturns.OriginCityName = portV2.City
+						}
+					}
+					if scheduleReturns.DestinationAirportName == "" {
+						if port, ok := localAirports[strings.ToUpper(scheduleReturns.Destination)]; ok {
+							scheduleReturns.DestinationAirportName = port.AirportName
+						} else if portV2, ok := localAirportsV2[strings.ToUpper(scheduleReturns.Destination)]; ok {
+							scheduleReturns.DestinationAirportName = portV2.Name
+						}
+					}
+					if scheduleReturns.DestinationCityName == "" {
+						if port, ok := localAirports[strings.ToUpper(scheduleReturns.Destination)]; ok {
+							scheduleReturns.DestinationCityName = port.CityName
+						} else if portV2, ok := localAirportsV2[strings.ToUpper(scheduleReturns.Destination)]; ok {
+							scheduleReturns.DestinationCityName = portV2.City
+						}
+					}
+
 					scheduleReturns.Kind = "Return"
 				}
 			}
@@ -457,4 +530,129 @@ func (s *mysqlBookingService) ProxyRequest(ctx context.Context, providerCode str
 	}
 
 	return resBody, resp.StatusCode, nil
+}
+
+func populateFlightDetails(f *dto.FlightsResponse, providerCode string, airports map[string]dto.AirportDetailResponse, airportsV2 map[string]dto.AirportV2DetailResponse) {
+	f.Provider = providerCode
+
+	// Populate airport/city names for Origin
+	if port, ok := airports[strings.ToUpper(f.Origin)]; ok {
+		f.OriginAirportName = port.AirportName
+		f.OriginCityName = port.CityName
+	} else if portV2, ok := airportsV2[strings.ToUpper(f.Origin)]; ok {
+		f.OriginAirportName = portV2.Name
+		f.OriginCityName = portV2.City
+	}
+
+	// Populate airport/city names for Destination
+	if port, ok := airports[strings.ToUpper(f.Destination)]; ok {
+		f.DestinationAirportName = port.AirportName
+		f.DestinationCityName = port.CityName
+	} else if portV2, ok := airportsV2[strings.ToUpper(f.Destination)]; ok {
+		f.DestinationAirportName = portV2.Name
+		f.DestinationCityName = portV2.City
+	}
+
+	// Build full ISO Datetime strings
+	f.DepartDateTime = formatDateTime(f.DepartDate, f.DepartTime, f.Origin, airportsV2)
+	f.ArriveDateTime = formatDateTime(f.ArriveDate, f.ArriveTime, f.Destination, airportsV2)
+
+	// Calculate Durations and Transits
+	totalDT, totalTT := getDurations(*f, f.DepartDateTime, f.ArriveDateTime, airportsV2)
+	f.TotalDateTime = totalDT
+	f.TotalTransitTime = totalTT
+
+	// If there are connecting flights, process them too
+	for i := range f.ConnectingFlights {
+		cf := (*dto.FlightsResponse)(&f.ConnectingFlights[i])
+		populateFlightDetails(cf, providerCode, airports, airportsV2)
+	}
+}
+
+func formatDateTime(date, timeVal, airportCode string, airportsV2 map[string]dto.AirportV2DetailResponse) string {
+	if date == "" || timeVal == "" {
+		return ""
+	}
+	if strings.Contains(timeVal, "+") || strings.Contains(timeVal, "-") || strings.HasSuffix(timeVal, "Z") {
+		if strings.Contains(timeVal, "T") {
+			return timeVal
+		}
+		return date + "T" + timeVal
+	}
+
+	offset := "+07:00"
+	if port, ok := airportsV2[strings.ToUpper(airportCode)]; ok && port.MinOffset != "" {
+		raw := strings.TrimSpace(port.MinOffset)
+		sign := "+"
+		if strings.HasPrefix(raw, "-") {
+			sign = "-"
+			raw = raw[1:]
+		} else if strings.HasPrefix(raw, "+") {
+			raw = raw[1:]
+		}
+
+		parts := strings.Split(raw, ":")
+		if len(parts) > 0 {
+			hoursStr := parts[0]
+			minutesStr := "00"
+			if len(parts) > 1 {
+				minutesStr = parts[1]
+			}
+
+			if len(hoursStr) == 1 {
+				hoursStr = "0" + hoursStr
+			}
+			if len(hoursStr) == 2 && len(minutesStr) == 2 {
+				offset = sign + hoursStr + ":" + minutesStr
+			}
+		}
+	}
+	return date + "T" + timeVal + offset
+}
+
+func getDurations(f dto.FlightsResponse, departStr, arriveStr string, airportsV2 map[string]dto.AirportV2DetailResponse) (string, string) {
+	t1, err1 := time.Parse(time.RFC3339, departStr)
+	t2, err2 := time.Parse(time.RFC3339, arriveStr)
+	if err1 != nil || err2 != nil {
+		return "", ""
+	}
+
+	totalDiff := t2.Sub(t1)
+	if totalDiff < 0 {
+		totalDiff = 0
+	}
+	totalDays := int(totalDiff.Hours()) / 24
+	totalHours := int(totalDiff.Hours()) % 24
+	totalMins := int(totalDiff.Minutes()) % 60
+	totalDateTime := fmt.Sprintf("%02d:%02d:%02d", totalDays, totalHours, totalMins)
+
+	var totalTransitTime string
+	if len(f.ConnectingFlights) > 1 {
+		var transitDuration time.Duration
+		for i := 0; i < len(f.ConnectingFlights)-1; i++ {
+			seg1 := f.ConnectingFlights[i]
+			seg2 := f.ConnectingFlights[i+1]
+
+			seg1ArrStr := formatDateTime(seg1.ArriveDate, seg1.ArriveTime, seg1.Destination, airportsV2)
+			seg2DepStr := formatDateTime(seg2.DepartDate, seg2.DepartTime, seg2.Origin, airportsV2)
+
+			arrTime, errA := time.Parse(time.RFC3339, seg1ArrStr)
+			depTime, errD := time.Parse(time.RFC3339, seg2DepStr)
+			if errA == nil && errD == nil {
+				gap := depTime.Sub(arrTime)
+				if gap > 0 {
+					transitDuration += gap
+				}
+			}
+		}
+
+		if transitDuration > 0 {
+			transitDays := int(transitDuration.Hours()) / 24
+			transitHours := int(transitDuration.Hours()) % 24
+			transitMins := int(transitDuration.Minutes()) % 60
+			totalTransitTime = fmt.Sprintf("%02d:%02d:%02d", transitDays, transitHours, transitMins)
+		}
+	}
+
+	return totalDateTime, totalTransitTime
 }
